@@ -4,8 +4,7 @@ import csv
 
 config = open('config','r')
 
-DOLLOR_SIGN = config.read()
-
+DOLLOR_SIGN = config.read().replace('\n', '').replace('\r', '').replace('\t', '')
 
 def get_special_page(filename,page):
   url = "http://store.steampowered.com/search/?specials=1&page=" + str(page)
@@ -17,39 +16,38 @@ def get_special_page(filename,page):
     return False
   for game in game_list:
     game_title = game.find("span",{"class":"title"}).text
-    discount = game.find("div",{"class": "search_discount"}).text
-    discount = discount.replace("%","").replace("\n","")
+    discount = game.find("div",{"class": "search_discount"}).text.replace("%","").replace("\t","").replace("\n","").replace("\r","")
+    price = game.find("div",{"class": "search_price"}).text.replace("%","").replace("\t","").replace("\n","").replace("\r","")
     if discount == "":
       continue
-    price = game.find("div",{"class": "search_price"}).text
     if "Free to Play" in price:
       price = price.split("Free to Play")
       price = ["",price[0].replace(DOLLOR_SIGN,""),"Free to Play"]
     else:
       price = price.split(DOLLOR_SIGN)
-  
+    
     try:
-      price = price[2].replace(",","")
+      if len(price) < 3:
+        price = "Free"
+      else:
+        price = price[2].replace(",","").replace("\t","")
       if abs(int(discount)) > 70:
         csvfile = open(filename, 'a', newline="", encoding='utf8')
         spamwriter = csv.writer(csvfile, delimiter=',',
                           quotechar='"', quoting=csv.QUOTE_NONE)
         try:
-          spamwriter.writerow([game_title,discount+"%",str(int(price)),game['href']])
+          spamwriter.writerow([game_title,discount+"%",price,game['href']])
         except Exception as e:
-          print(e)
-          print(price)
           spamwriter.writerow([game_title,"Free", price,game['href']])
-        # print(game_title,discount+"%","NT$"+str(price))
     except Exception as e:
-      print(e)
+      print([game_title,"Free", "error",game['href']])
   return True
 
 def init_csv(filename):
   csvfile = open(filename, 'w', newline="", encoding='utf8')
   spamwriter = csv.writer(csvfile, delimiter=',',
                           quotechar='"', quoting=csv.QUOTE_NONE)
-  spamwriter.writerow(["Name","Discount","Price ({})".format(DOLLOR_SIGN),"Url"])
+  spamwriter.writerow(["Name","Discount","Price ()","Url"])
 
 
 def main():
